@@ -1,7 +1,5 @@
 # Unity Developer Test Assignment — Octo Games
 
-**Position:** Middle Unity Developer  
-**Focus:** 3D / Visual Novels / Gameplay  
 **Tools:** Unity, VS
 
 ---
@@ -131,6 +129,49 @@ Architecture
 The system is composed of three main parts:
 
 1. PopupView (Presentation Layer)
+```csharp
+public class PopupView : MonoBehaviour
+{
+    [SerializeField] private TMP_Text _titleText;
+    [SerializeField] private TMP_Text _bodyText;
+
+    [SerializeField] private PopupButton[] _buttons;
+    
+    public void Show(PopupData data)
+    {
+        if (data.popupButtonDatas.Length > _buttons.Length)
+        {
+            Debug.LogError($"Popup supports maximum {_buttons.Length} buttons");
+            return;
+        }
+
+        _titleText.text = data.Title;
+        _bodyText.text = data.Body;
+
+        HideAllButtons();
+
+        for (int i = 0; i < data.popupButtonDatas.Length; i++)
+        {
+            _buttons[i].Show(data.popupButtonDatas[i]);
+        }
+
+        gameObject.SetActive(true);
+    }
+    
+    public void Hide()
+    {
+        gameObject.SetActive(false);
+    }
+
+    private void HideAllButtons()
+    {
+        foreach (PopupButton button in _buttons)
+        {
+            button.Hide();
+        }
+    }
+}
+```
 
 Responsible only for displaying UI and binding data:
 
@@ -168,12 +209,12 @@ public struct PopupButtonData
 }
 ```
 
-#Key Design Choice
+# Key Design Choice
 UnityEvent-based Button Actions
 
 Instead of using code-based delegates (e.g. Action), this system uses UnityEvent to define button behavior.
 
-#Why?
+# Why?
 
 This allows:
 
@@ -186,7 +227,7 @@ Each button can independently define:
 
 visual appearance (label, color)
 behavior (via UnityEvent callbacks)
-#Usage
+# Usage
 1. Create PopupData in Inspector
 - Set Title and Body
 - Add 1–5 buttons
@@ -200,30 +241,29 @@ behavior (via UnityEvent callbacks)
 _popup.Show(_popupData);
 ```
 
-#Limitations / Assumptions
+# Limitations / Assumptions
 Maximum number of buttons is defined by prefab setup (default: 5)
 Button actions are configured via UnityEvent (not code delegates)
 System is intended for simple UI flows, not complex branching logic systems
 Design Notes
 
-#This system prioritizes:
+# This system prioritizes:
 
 designer iteration speed
 simplicity of configuration
 prefab reusability
 separation of UI presentation from gameplay logic
 
-#It is especially suitable for:
+# It is especially suitable for:
 
 visual novel style dialogue choices
 lightweight UI decision popups
 prototype and production UI flows with frequent iteration
-Possible Improvements
-add pooling for popups
-add animation transitions (open/close)
-support async results (e.g. Task-based choice selection)
-add localization layer for text
-introduce button layout customization presets
+# Possible Improvements
+- add animation transitions (open/close)
+- support async results (e.g. Task-based choice selection)
+- add localization layer for text
+- introduce button layout customization presets
 
 ### 3.1 — Unity Components for the prefab
 
@@ -260,54 +300,68 @@ introduce button layout customization presets
 ### Refactored — `CharactersView.cs`
 
 ```csharp
-public class CharactersView : MonoBehaviour
+public class CharactersAvarageView : MonoBehaviour
 {
-    [SerializeField] private TMP_Text         _text;
-    [SerializeField] private List<Character>  _characters;
+    [SerializeField] private TMP_Text _text;
+    [SerializeField] private List<Character> _characters;
+
     [SerializeField, Range(0.2f, 5f)] private float _tickInterval = 0.5f;
 
-    private Coroutine     _coroutine;
+    private bool _isActive;
+    private Coroutine _coroutine;
+
     private readonly StringBuilder _sb = new();
 
-    private void OnEnable()  => _coroutine = StartCoroutine(UpdateCoroutine());
-    private void OnDisable() => StopCoroutineIfRunning();
-
-    private void StopCoroutineIfRunning()
+    private void OnEnable()
     {
-        if (_coroutine == null) return;
-        StopCoroutine(_coroutine);
-        _coroutine = null;
+        _coroutine = StartCoroutine(UpdateCoroutine());
+        _isActive = true;
+    }
+
+    private void OnDisable()
+    {
+        Stop();
+    }
+
+    private void Stop()
+    {
+        if (_coroutine != null)
+        {
+            StopCoroutine(_coroutine);
+            _coroutine = null;
+            _isActive = false;
+        }
     }
 
     private IEnumerator UpdateCoroutine()
     {
-        var wait = new WaitForSeconds(_tickInterval);
-        while (true)
+        WaitForSeconds waitForSeconds = new(_tickInterval);
+
+        while (_isActive)
         {
+            yield return waitForSeconds;
             RefreshDisplay();
-            yield return wait;
         }
     }
 
     private void RefreshDisplay()
     {
         float totalValue = 0f;
-        int   count      = 0;
 
         foreach (Character character in _characters)
         {
-            if (character == null) continue; // destroyed at runtime
+            if (character == null) continue;
             totalValue += character.Value;
-            count++;
         }
 
+        int count = _characters.Count;
         float avg = count > 0 ? totalValue / count : 0f;
 
         _sb.Clear();
         _sb.Append("Characters: ").Append(count)
            .Append("  Avg value: ").Append(avg.ToString("F1"));
 
-        _text.SetText(_sb); // TMP StringBuilder overload — zero GC alloc
+        _text.SetText(_sb);
     }
 }
 ```
