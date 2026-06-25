@@ -2,7 +2,7 @@
 
 **Position:** Middle Unity Developer  
 **Focus:** 3D / Visual Novels / Gameplay  
-**Tools:** Unity, Rider
+**Tools:** Unity, VS
 
 ---
 
