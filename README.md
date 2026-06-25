@@ -293,9 +293,9 @@ prototype and production UI flows with frequent iteration
 | 5 | `GetComponent<Text>()` called every `FixedUpdate` frame | Cached in `Awake` |
 | 6 | `FixedUpdate` used for UI — runs on physics timestep | `Update` + interval, or Coroutine, or UniTask |
 | 7 | `Debug.Log` every frame — GC alloc + console spam | Removed from hot path |
-| 8 | Add tick interval for better perfomance |
-| 9 | Using `StringBuilder` for avoid GC allocation |
-| 10 | Use `Character` links on List, not a Transform |
+| 8 | Update every frame | Add tick interval for better perfomance
+| 9 | GC allocation by text changing | Using `StringBuilder` for avoid GC allocation
+| 10 | Transform + GetComponent + FixedUpdate | Use `Character` links on List
 
 ### Refactored — `CharactersView.cs`
 
